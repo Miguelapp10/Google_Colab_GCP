@@ -1,147 +1,166 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "include_colab_link": true
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "cells": [
-    {
-      "cell_type": "markdown",
-      "metadata": {
-        "id": "view-in-github",
-        "colab_type": "text"
-      },
-      "source": [
-        "<a href=\"https://colab.research.google.com/github/Miguelapp10/Google_Colab_GCP/blob/main/Mpazos_envio_outlook.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "execution_count": null,
-      "metadata": {
-        "id": "rCWOw8Mk5JlJ"
-      },
-      "outputs": [],
-      "source": [
-        "#!pip install google-colab google-cloud-bigquery,
-        "!pip install xlsxwriter,
-        "#!pip install pyautogui,
-        "#!pip install smtplib,
-        "!pip install Openpyxl
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "from google.colab import auth\n",
-        "from google.colab import files\n",
-        "from google.cloud import bigquery\n",
-        "import pandas as pd\n",
-        "\n",
-        "\n",
-        "auth.authenticate_user()\n",
-        "\n",
-        "import gspread as gs\n",
-        "import gspread_dataframe as gd\n",
-        "from google.auth import default\n",
-        "creds, _ = default()\n",
-        "\n",
-        "gc = gs.authorize(creds)\n",
-        "import os"
-      ],
-      "metadata": {
-        "id": "eudunJKU5byB"
-      },
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "# Connect sheet\n",
-        "sheet = gc.open_by_key('NOMBRE_SHEETS')\n",
-        "diciembre = sheet.worksheet('diciembre')\n",
-        "# Get all values from the worksheet\n",
-        "diciembre = diciembre.get_all_values()\n",
-        "# Convert the data to a Pandas DataFrame\n",
-        "diciembre = pd.DataFrame(diciembre[1:], columns=diciembre[0])\n",
-        "\n",
-        "enero24 = sheet.worksheet('enero24')\n",
-        "# Get all values from the worksheet\n",
-        "enero24 = enero24.get_all_values()\n",
-        "# Convert the data to a Pandas DataFrame\n",
-        "enero24 = pd.DataFrame(enero24[1:], columns=enero24[0])\n",
-        "\n",
-        "febrero24 = sheet.worksheet('febrero24')\n",
-        "# Get all values from the worksheet\n",
-        "febrero24 = febrero24.get_all_values()\n",
-        "# Convert the data to a Pandas DataFrame\n",
-        "febrero24 = pd.DataFrame(febrero24[1:], columns=febrero24[0])\n",
-        "\n",
-        "marzo24 = sheet.worksheet('marzo24')\n",
-        "# Get all values from the worksheet\n",
-        "marzo24 = marzo24.get_all_values()\n",
-        "# Convert the data to a Pandas DataFrame\n",
-        "marzo24 = pd.DataFrame(marzo24[1:], columns=marzo24[0])\n",
-        "\n",
-        "# Realiza la unión de los DataFrames\n",
-        "#enero, febrero, marzo,abril,mayo,junio,julio,agosto,setiembre,octubre,noviembre,\n",
-        "resultado_union = pd.concat([diciembre,enero24,febrero24,marzo24], ignore_index=True)"
-      ],
-      "metadata": {
-        "id": "AIrWD5t65mzh"
-      },
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "# Configuración de la autenticación para BigQuery\n",
-        "project_id = 'NOMBRE_PROJECT_ID'  # Reemplaza con tu ID de proyecto en Google Cloud\n",
-        "!gcloud config set project {project_id}\n",
-        "# Configuración del dataset y la tabla en BigQuery\n",
-        "dataset_id = 'NOMBRE_DATASET_ID'\n",
-        "table_id = 'NOMBRE_TABLE_ID'\n",
-        "\n",
-        "# Cargar el DataFrame en BigQuery\n",
-        "resultado_union.to_gbq(destination_table=f'{dataset_id}.{table_id}', project_id=project_id, if_exists='replace')\n",
-        "# Cargar el DataFrame en BigQuery\n",
-        "#resultado_union.to_gbq(destination_table=f'{project_id}.{dataset_id}.{table_id}', if_exists='replace')"
-      ],
-      "metadata": {
-        "id": "SfNYxbQW6BW0",
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "outputId": "4ee03b8d-bcf0-4964-8148-7743b5a2e67c"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Updated property [core/project].\n"
-          ]
-        },
-        {
-          "output_type": "stream",
-          "name": "stderr",
-          "text": [
-            "100%|██████████| 1/1 [00:00<00:00, 1589.35it/s]\n"
-          ]
-        }
-      ]
-    }
+#!pip install google-colab google-cloud-bigquery
+!pip install xlsxwriter
+#!pip install pyautogui
+#!pip install smtplib
+!pip install Openpyxl
+
+from google.colab import auth
+from google.colab import files
+
+auth.authenticate_user()
+
+import gspread as gs
+import gspread_dataframe as gd
+from google.auth import default
+creds, _ = default()
+
+gc = gs.authorize(creds)
+
+from google.cloud import bigquery
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta,timezone
+
+# Ingresa el ID de tu proyecto de Google Cloud
+project_id = 'PROJECT_ID'
+
+# Configura la conexión a BigQuery
+client = bigquery.Client(project=project_id)
+
+# Ejemplo de consulta
+query = """
+SELECT  *  FROM `UBICACION_TABLA` 
+"""
+# Ejecutar la consulta
+result = client.query(query)
+
+# Convertir los resultados en un DataFrame de Pandas
+DATA = result.to_dataframe()
+
+# Create a pivot table
+pivot_table_1 = pd.pivot_table(DATA,
+                             values=['ID'],
+                             index=['ESTADO'],
+                             columns=['Año_mes'],
+                             aggfunc={'ID': 'count'},
+                             margins=True,
+                             margins_name='Total'
+                             ).rename(columns={'ID': 'Cantidad'}
+                                      ).rename_axis(columns={'ESTADO': 'ESTADO'})
+
+# Rellenar los valores NaN con ''
+pivot_table_1.fillna('', inplace=True)
+
+# Create HTML representation of the styled pivot table
+html_table_1 = pivot_table_1.to_html(classes='styled-table', escape=False)
+
+# Print the head of the pivot table
+print(pivot_table_1.head())
+###############################################################################################################################################################################################
+import time
+import datetime
+##import pyautogui
+import smtplib
+from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+import math  # Necesario para verificar NaN
+import os
+
+# Obtener la fecha actual y calcular la semana correspondiente
+today = datetime.date.today()
+week_number = today.strftime("%V")
+
+# Definir el nombre del archivo Excel con el formato deseado
+nombre_archivo = f"Pendientes_W{week_number}.xlsx"
+# Escribir los DataFrames en un archivo Excel
+with pd.ExcelWriter(nombre_archivo) as writer:
+    # Escribir 'DATA' en una hoja llamada 'DATA'
+    DATA.to_excel(writer, sheet_name='DATA', index=False)
+
+# Obtener el libro de trabajo y las hojas
+    workbook = writer.book
+    DATA_sheet = writer.sheets['DATA']
+
+    # Formato para los títulos de fondo de color naranja
+    header_format = workbook.add_format({'bg_color': '#FFA500', 'bold': True})
+
+    # Aplicar formato a los títulos en DATA
+    for col_num, value in enumerate(DATA.columns.values):
+        DATA_sheet.write(0, col_num, value, header_format)
+
+    # Aplicar filtros en DATA
+    DATA_sheet.autofilter(0, 0, len(DATA.index), len(DATA.columns) - 1)
+
+    # Establecer el ancho de la columna en 30 en DATA
+    DATA_sheet.set_column(0, len(DATA.columns) - 1, 30)
+
+# Calcular el total de CANTIDAD en los DataFrames
+TOTAL_CANTIDAD = DATA.shape[0]
+
+# Calcular la suma de precios en los DataFrames
+SUMA_PRECIO = DATA['Precio'].sum()
+
+# Configuración
+email_usuario = 'miguelapp101197@gmail.com'
+contrasena = 'contraseña'
+asunto_base = f"DETALLE {today.year} - WEEK {week_number} - {today}"
+
+# Establecer la conexión con el servidor SMTP de Outlook
+server = smtplib.SMTP('smtp.office365.com', 587)
+server.starttls()
+
+# Iniciar sesión en el servidor SMTP
+server.login(email_usuario, contrasena)
+
+# Configurar el mensaje
+msg = MIMEMultipart()
+msg['From'] = email_usuario
+msg['To'] = 'miguelapp101197@gmail.com'
+msg['Subject'] = asunto_base
+msg['CC'] = 'miguelapp101197@gmail.com'
+
+# Darle un nivel de importancia al correo electrónico (en este caso, Alto)
+msg.add_header('Importance', 'High')
+
+# Crear el cuerpo del correo en formato HTML
+mensaje_html = f"""
+<html>
+  <head>
+    <style>
+      .styled-table th {{
+        background-color: orange;
+        font-weight: bold;
+      }}
+    </style>
+  </head>
+  <body>
+    <p>Estimado .....!</p>
+    <p>CANTIDAD: {TOTAL_CANTIDAD} Y valorizado S/.{SUMA_PRECIO}.</p>
+    <p><span style="font-size: 16px"><u><strong> Estado de ID </strong></u></span><br></p>
+    {html_table_1}
+  </body>
+</html>
+"""
+
+# Adjuntar el cuerpo del correo en formato HTML
+msg.attach(MIMEText(mensaje_html, 'html'))
+
+# Adjuntar el archivo Excel al correo electrónico
+filename = nombre_archivo
+attachment = open(nombre_archivo, "rb")
+
+part = MIMEBase('application', 'octet-stream')
+part.set_payload(attachment.read())
+encoders.encode_base64(part)
+part.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+msg.attach(part)
+
+# Enviar el correo electrónico
+server.sendmail(email_usuario,msg['To'], msg.as_string())
+
+# Cerrar la conexión con el servidor SMTP
+server.quit()
